@@ -20,7 +20,6 @@ public class Edge implements Comparable<Edge> {
 			latency = (double) l / OPTICAL_SPEED;
 		else
 			latency = (double) l/COPPER_SPEED;
-		System.out.println(latency);
 	}
 	public int getVNum()
 	{

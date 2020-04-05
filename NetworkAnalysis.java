@@ -15,7 +15,6 @@ public class NetworkAnalysis {
 		CopperList = new PriorityQueue[size];
 		for(int i = 0; i < size; i++)//populate adjacency list
 		{
-			System.out.println("adding: " + i);
 			AdjacencyList[i] = new PriorityQueue<Edge>();
 			CopperList[i] = new PriorityQueue<Edge>();
 		}
@@ -40,7 +39,6 @@ public class NetworkAnalysis {
 			int bandwidth = Integer.parseInt(sub);
 			s = s.substring(index+1);
 			int length = Integer.parseInt(s);
-			System.out.println("adding " + vNum + " " + type + " " + bandwidth + " " + length + " to " + i);
 			Edge e = new Edge(i,vNum,type,bandwidth,length);
 			vertex.add(e);
 			if(e.getType().equals("copper"))
@@ -51,13 +49,12 @@ public class NetworkAnalysis {
 			reverseV.add(reverse);
 			if(e.getType().equals("copper"))
 				reverseCv.add(e);
-			System.out.println("adding " + i + " " + type + " " + bandwidth + " " + length + " to " + vNum);
 		}
 		scanny.close();
 		System.out.println("Interface:");
 		while(true)//Interface
 		{
-			System.out.println("Please type: \n1 To find the lowest latency path between two vertices\n2 To check if the graph is copper connected\n4 To exit the system");
+			System.out.println("\nPlease type: \n1 To find the lowest latency path between two vertices\n2 To check if the graph is copper connected\n3 Determine if the graph will remain connected if any two vertices fail\n4 To exit the system");
 			Scanner input = new Scanner(System.in);
 			int choice = input.nextInt();
 			switch(choice) 
@@ -67,32 +64,89 @@ public class NetworkAnalysis {
 				int vertexOne = input.nextInt();
 				System.out.println("Please enter the end point (integer)");
 				int vertexTwo = input.nextInt();
-				LinkedList<Integer> wsp = weightedShortestPath(vertexOne,vertexTwo);
-				resetEdges(AdjacencyList);
-				if(wsp == null)
-					System.out.println("There is no path from " + vertexOne + " to " + vertexTwo);
+				if(vertexOne == vertexTwo)
+				{
+					System.out.println("The start and end vertices are the same");
+				}
 				else
 				{
-					System.out.println("the path is as follows: " + wsp.toString());
-					//System.out.println("the bandwidth along the path is: " + getBandwidth(wsp));
+					LinkedList<Integer> wsp = weightedShortestPath(vertexOne,vertexTwo);
+					resetEdges(AdjacencyList);
+					if(wsp == null)
+						System.out.println("There is no path from " + vertexOne + " to " + vertexTwo);
+					else
+					{
+						System.out.println("the path is as follows: " + wsp.toString());
+						//System.out.println("the bandwidth along the path is: " + getBandwidth(wsp));
+					}
 				}
 				break;
 			case 2:
-				boolean copperConnection = checkConnection(CopperList);
+				boolean copperConnection = checkConnection(CopperList,-1,-1);
 				resetEdges(CopperList);
 				if(copperConnection == true)
 					System.out.println("The graph IS copper connected");
 				else
 					System.out.println("The graph IS NOT copper connected");
 				break;
+			case 3:
+				ArrayList<Boolean> b = new ArrayList<Boolean>();
+				PriorityQueue<Edge> [] network = new PriorityQueue[size];
+				for(int i = 0; i < size; i++)
+				{
+					PriorityQueue<Edge> c = new PriorityQueue<Edge>(AdjacencyList[i]);
+					network[i] = c;
+				}
+				for(int i = 0; i < size; i++)
+				{
+					for(int j = 0; j < size; j++)
+					{
+						resetEdges(AdjacencyList);
+						PriorityQueue<Edge>[] n = new PriorityQueue[size];
+						n = getNetwork(network,i,j);
+						if(checkConnection(n,i,j))
+							b.add(true);
+						else
+							b.add(false);
+					}
+				}
+				if(b.contains(false))
+					System.out.println("Removal of a pair of vertices disconnects the graph");
+				else
+					System.out.println("Removal of any pair of vertices does not disconnect the graph");
+				resetEdges(AdjacencyList);
+				break;
 			case 4:
 				System.exit(0);
 			}
 		}
 	}
+	public static PriorityQueue<Edge>[] getNetwork(PriorityQueue<Edge>[] network, int r1, int r2)//returns network with edges removed that connect to vertices r1 or r2
+	{
+		PriorityQueue<Edge>[] returnN = new PriorityQueue[size];
+		for(int i = 0; i < size; i++)
+		{
+			PriorityQueue<Edge> c = new PriorityQueue<Edge>(network[i]);
+			returnN[i] = c;
+		}
+		for(int i = 0; i < size; i++)
+		{
+			PriorityQueue<Edge> curr = returnN[i];
+			LinkedList<Edge> currL = new LinkedList<Edge>(curr);
+				for(int j = 0; j < currL.size(); j++)
+				{
+					Edge e = currL.get(j);
+					if(e.getFrom() == r1 || e.getVNum() == r1)
+						currL.remove(j);
+					else if(e.getFrom() == r2 || e.getVNum() == r2)
+						currL.remove(j);
+				}
+				returnN[i] = new PriorityQueue<Edge>(currL);
+		}
+		return returnN;
+	}
 	public static LinkedList<Integer> weightedShortestPath(int startPoint, int endPoint)
 	{
-		System.out.println("weighted shortest path of : " + startPoint + " to " + endPoint);
 		LinkedList<Integer> result = new LinkedList<Integer>();//will contain edges to follow to end point
 		LinkedList<Edge> q = new LinkedList<Edge>();
 		PriorityQueue<Edge> curr = new PriorityQueue<Edge>(AdjacencyList[startPoint]);//creates a copy of the starting vertex's edges in order from shortest to longest
@@ -109,7 +163,6 @@ public class NetworkAnalysis {
 		int current = startPoint;
 		while(!curr.isEmpty())
 		{
-			System.out.println("adding edge " + startPoint + " to " + curr.peek().getVNum() + " to queue");
 			q.add(curr.poll());
 		}
 		
@@ -118,46 +171,37 @@ public class NetworkAnalysis {
 			Edge e = q.poll();
 			current = e.getFrom();
 			e.visited = true;
-			System.out.println("edge is from " + current + " to " + e.getVNum());
 			int nextNode = e.getVNum();
 			if(Distance[nextNode] == MAX_INT)
 			{
-				System.out.println("max int");
 				if(current == startPoint)
 				{
 					Distance[nextNode] = e.getLatency();
 					Bandwidth[nextNode] = e.getBandwidth();
-					System.out.println("current == startPoint so set latency to nextNode " + e.getLatency());
 				}
 				else 
 				{
-					System.out.println("latency to " + nextNode + " = MAXINT");
 					Distance[nextNode] = e.getLatency() + Distance[current];
 					Bandwidth[nextNode] = e.getBandwidth();
-					System.out.println("so set Distance " + nextNode + " to " + e.getLatency() + " + " + Distance[current] + " (" + Distance[nextNode] + ")");
 				}
 				Via[nextNode] = current;
 			}
 			else if(Distance[current] + e.getLatency() < Distance[nextNode])
 			{
-				System.out.println("Distance [current] "  + Distance[current] + " " + e.getLatency() + " < " + "Distance[nextNode] "+ Distance[nextNode]);
 				Distance[nextNode] = Distance[current] + e.getLatency();
 				Via[nextNode] = current;
 				Bandwidth[nextNode] = e.getBandwidth();
 			}
-			System.out.println("new curr queue");
 			curr = new PriorityQueue<Edge>(AdjacencyList[nextNode]);
 			while(!curr.isEmpty())
 			{
 				if(curr.peek().getVisited() == false)
 				{
-					System.out.println("adding edge " + nextNode + " to " + curr.peek().getVNum() + " to queue");
 					q.add(curr.poll());
 				}
 				else
 					curr.poll();
 			}
-			System.out.println("added all of curr to q");
 		}
 	
 			//set current and loo
@@ -183,11 +227,19 @@ public class NetworkAnalysis {
 		}
 		return result;
 	}
-	public static boolean checkConnection(PriorityQueue<Edge>[] network)
+	public static boolean checkConnection(PriorityQueue<Edge>[] network, int r1, int r2)
 	{
 		//NOTHING TO DO WITH COPPER CONNECTION
 		//simply returns true if all vertices are connected, and false if at least one isn't
-		int current = 0;
+		int current = -1;
+		int x = 0;
+		while(current == -1)
+		{
+			if(x == r1 || x == r2)
+				x++;
+			else
+				current = x;
+		}
 		PriorityQueue<Edge> curr = new PriorityQueue<Edge>(network[current]);
 		LinkedList<Edge> q = new LinkedList<Edge>();
 		boolean [] Connected = new boolean [size];
@@ -197,19 +249,21 @@ public class NetworkAnalysis {
 		}
 		while(!curr.isEmpty())
 		{
-			System.out.println("adding edge " + current + " to " + curr.peek().getVNum() + " to queue");
 			q.add(curr.poll());
 		}
-		Connected[0] = true;
 		while(!q.isEmpty())
 		{
+			Connected[current] = true;
 			Edge e = q.poll();
 			current = e.getFrom();
-			e.visited = true;
+			e.setVisited(true);
 			//System.out.println("edge is from " + current + " to " + e.getVNum());
 			int nextNode = e.getVNum();
-			System.out.println("setting " + nextNode + " to true");
-			Connected[nextNode] = true;
+			if(e.getFrom() != r1 && e.getVNum() != r1 && e.getFrom() != r2 && e.getVNum() != r2)
+			{
+				//System.out.println("connected [ ] " + nextNode + " set to true ");
+				Connected[nextNode] = true;
+			}
 			curr = new PriorityQueue<Edge>(network[nextNode]);
 			while(!curr.isEmpty())
 			{
@@ -221,13 +275,30 @@ public class NetworkAnalysis {
 					curr.poll();
 			}
 		}
-		for(int i = 0; i < size; i++)
+		if(r1 == -1)
 		{
-			System.out.println(Connected[i]);
-			if(Connected[i] == false)
-				return false;
+			for(int i = 0; i < size; i++)
+			{
+				if(Connected[i] == false)
+				{
+					//System.out.println(i + " = " +Connected[i]);
+					return false;
+				}
+			}
+			return true;
 		}
-		return true;
+		else
+		{
+			for(int i = 0; i < size; i ++)
+			{
+				if(Connected[i] == false && (i != r1 && i != r2))
+				{
+					//System.out.println(i + " = " +Connected[i]);
+					return false;
+				}
+			}
+			return true;
+		}
 	}
 	public static void resetEdges(PriorityQueue<Edge>[] al)//resets edges to unvisited
 	{
