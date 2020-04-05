@@ -1,7 +1,8 @@
+//Connor Kalina 4/4/2020
 import java.io.*;
 import java.util.*;
 public class NetworkAnalysis {
-	private static final int MAX_INT = 2147483647;//java max int
+	private static final int MAX_INT = 2147483647;//java max integer
 	static PriorityQueue<Edge> [] AdjacencyList;
 	static PriorityQueue<Edge> [] CopperList; //only add copper edges to this list
 	static int size;
@@ -249,13 +250,17 @@ public class NetworkAnalysis {
 		}
 		while(!curr.isEmpty())
 		{
+			//System.out.println("adding " + curr.peek().getFrom() + " " + curr.peek().getVNum());
 			q.add(curr.poll());
 		}
+		//System.out.println("current: " + current);
 		while(!q.isEmpty())
 		{
-			Connected[current] = true;
 			Edge e = q.poll();
 			current = e.getFrom();
+			Connected[current] = true;
+			//System.out.println("current: " + current);
+			//System.out.println("edge: " + e.getFrom() + " " + e.getVNum());
 			e.setVisited(true);
 			//System.out.println("edge is from " + current + " to " + e.getVNum());
 			int nextNode = e.getVNum();
@@ -264,15 +269,27 @@ public class NetworkAnalysis {
 				//System.out.println("connected [ ] " + nextNode + " set to true ");
 				Connected[nextNode] = true;
 			}
+			PriorityQueue<Edge> curr2 = new PriorityQueue<Edge>(network[current]);
 			curr = new PriorityQueue<Edge>(network[nextNode]);
 			while(!curr.isEmpty())
 			{
 				if(curr.peek().getVisited() == false)
 				{
+					//System.out.println("adding " + curr.peek().getFrom() + " " + curr.peek().getVNum());
 					q.add(curr.poll());
 				}
 				else
 					curr.poll();
+			}
+			while(!curr2.isEmpty())
+			{
+				if(curr2.peek().getVisited() == false)
+				{
+					//System.out.println("adding " + curr2.peek().getFrom() + " " + curr2.peek().getVNum());
+					q.add(curr2.poll());
+				}
+				else
+					curr2.poll();
 			}
 		}
 		if(r1 == -1)
